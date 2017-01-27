@@ -26,10 +26,9 @@
 
 #define PI 3.141592653589793238463;
 
-void loadData(std::string filename, std::vector<float*> z, int xSize, int ySize)
+void loadData(std::string filename, float* arr, int xSize, int ySize)
 {
   std::string line;
-  std::vector<double> surfData(xSize*ySize);
   std::ifstream streamin(filename);
   if (streamin.is_open())
     {
@@ -38,19 +37,17 @@ void loadData(std::string filename, std::vector<float*> z, int xSize, int ySize)
           std::istringstream ss(line);
           std::istream_iterator<std::string> begin(ss), end;
           std::vector<std::string> arrayTokens(begin, end);
-          if (arrayTokens.size() == surfData.size())
+          if (arrayTokens.size() == xSize*ySize)
             {
               for (int i = 0; i < arrayTokens.size(); i++)
                 {
-                  surfData[i] = std::stod(arrayTokens[i]);
-                  std::cout << arrayTokens[i] << ", ";
-                  std::cout << surfData[i] << std::endl;
+                  arr[i] = std::stod(arrayTokens[i]);
                 }
             }
           else
             {
               std::cout << "Mismatch in size: file conatins " << arrayTokens.size()
-                        << " entries while supplied size is " << surfData.size()
+                        << " entries while supplied size is " << (xSize*ySize)
                         << std::endl;
             }
         }
@@ -69,6 +66,21 @@ void createSurfaceArrayFromFile(float* x, float* y, float* z,
                                 float yMin, float yMax,
                                 std::string filename)
 {
+  loadData("/home/marcus/git/vtkPlot/Point/X.txt", x, xSize, ySize);
+  loadData("/home/marcus/git/vtkPlot/Point/Y.txt", y, xSize, ySize);
+  loadData("/home/marcus/git/vtkPlot/Point/Z.txt", z, xSize, ySize);
+  /*
+  float xIncrement = (xMax-xMin)/(xSize-1);
+  float yIncrement = (yMax-yMin)/(ySize-1);
+  for (int i = 0; i < xSize; ++i)
+    {
+      for (int j = 0; j < ySize; ++j)
+        {
+          x[i] = xMin + i*xIncrement;
+          y[j] = yMin + j*yIncrement;
+        }
+    }
+  */
 }
 
 void createSurfaceArray(float* x, float* y, float* z,
@@ -143,10 +155,10 @@ void createTopology(vtkSmartPointer<vtkPoints> points,
       for (int j = 0; j < ySize-1; ++j)
 	{
 	  // The coordinates of the points in the cell
-	  p[0] = new float[3] {x[i], y[j], z[j*xSize+i]};
-	  p[1] = new float[3] {x[i+1], y[j], z[j*xSize+i+1]};
-	  p[2] = new float[3] {x[i], y[j+1], z[(j+1)*xSize+i]};
-	  p[3] = new float[3] {x[i+1], y[j+1], z[(j+1)*xSize+i+1]};
+	  p[0] = new float[3] {x[j*xSize+i], y[j*xSize+i], z[j*xSize+i]};
+	  p[1] = new float[3] {x[j*xSize+i+1], y[j*xSize+i+1], z[j*xSize+i+1]};
+	  p[2] = new float[3] {x[(j+1)*xSize+i], y[(j+1)*xSize+i], z[(j+1)*xSize+i]};
+	  p[3] = new float[3] {x[(j+1)*xSize+i+1], y[(j+1)*xSize+i+1], z[(j+1)*xSize+i+1]};
 	  /*
 	  // The coordinates of the points in the cell
 	  p[0][0] = x[i];
@@ -213,24 +225,29 @@ void plotSurface(vtkRenderWindowInteractor *iren,
   float* x = new float[xSize];
   float* y = new float[ySize];
   float* z = new float[ySize*xSize];
-
+  /*
   createSurfaceArray(x, y, z, xSize, ySize,
-		     xMin, xMax, yMin, yMax);
-  
+                     xMin, xMax, yMin, yMax);
+  */
+  createSurfaceArrayFromFile(x, y, z, xSize, ySize,
+                             xMin, xMax, yMin, yMax,
+                             filename);
   /* Find max and min for the colormap */
   float* zBounds = new float[2] {z[0], z[0]};
   calcZBounds(z, zBounds, xSize, ySize);
-  
+
   /* Create the topology of the point (a vertex) */
   createTopology(points, vertices, colormap,
-		 x, y, z, xSize, ySize);
+                 x, y, z, xSize, ySize);
   /* Clean up unused variables */
+  /*
   delete[] x;
   x = NULL;
   delete[] y;
   y = NULL;
   delete[] z;
   z = NULL;
+  */
   /*
     ----------------------------------------------------------------------------
     Set the points and vertices created as the geometry and topology of the
