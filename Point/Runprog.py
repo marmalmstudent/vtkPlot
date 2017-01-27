@@ -2,8 +2,8 @@ import numpy as np
 import os
 
 
-xSize = 51
-ySize = 51
+xSize = 5
+ySize = 5
 filename = "/home/marcus/git/vtkPlot/Point/filename.txt"
 A, B = np.meshgrid(np.linspace(-np.pi, np.pi, xSize), np.linspace(-np.pi, np.pi, ySize))
 C = np.sin(A)*np.sin(B)

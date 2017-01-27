@@ -28,6 +28,11 @@
 
 void loadData(std::string filename, float* arr, int xSize, int ySize)
 {
+  std::cout << &arr << std::endl;
+  for (int i = 0; i < xSize*ySize; i++)
+    {
+      std::cout << arr[i] << std::endl;
+    }
   std::string line;
   std::ifstream streamin(filename);
   if (streamin.is_open())
@@ -60,14 +65,29 @@ void loadData(std::string filename, float* arr, int xSize, int ySize)
   return;
 }
 
-void createSurfaceArrayFromFile(float* x, float* y, float* z,
+void createSurfaceArrayFromFile(float *x, float *y, float *z,
                                 int xSize, int ySize,
                                 float xMin, float xMax,
                                 float yMin, float yMax,
                                 std::string filename)
 {
+  std::cout << &x << std::endl;
+  for (int i = 0; i < xSize*ySize; i++)
+    {
+      std::cout << x[i] << std::endl;
+    }
   loadData("/home/marcus/git/vtkPlot/Point/X.txt", x, xSize, ySize);
+  std::cout << &y << std::endl;
+  for (int i = 0; i < xSize*ySize; i++)
+    {
+      std::cout << y[i] << std::endl;
+    }
   loadData("/home/marcus/git/vtkPlot/Point/Y.txt", y, xSize, ySize);
+  std::cout << &z << std::endl;
+  for (int i = 0; i < xSize*ySize; i++)
+    {
+      std::cout << z[i] << std::endl;
+    }
   loadData("/home/marcus/git/vtkPlot/Point/Z.txt", z, xSize, ySize);
   /*
   float xIncrement = (xMax-xMin)/(xSize-1);
@@ -222,9 +242,9 @@ void plotSurface(vtkRenderWindowInteractor *iren,
     ----------------------------------------------------------------------------
   */
   /* Create the surface */
-  float* x = new float[xSize];
-  float* y = new float[ySize];
-  float* z = new float[ySize*xSize];
+  float *x = new float[xSize];
+  float *y = new float[ySize];
+  float *z = new float[ySize*xSize];
   /*
   createSurfaceArray(x, y, z, xSize, ySize,
                      xMin, xMax, yMin, yMax);
@@ -296,8 +316,7 @@ void plotSurface(vtkRenderWindowInteractor *iren,
   renWin->AddRenderer(ren); // add renderer to window
   iren->SetRenderWindow(renWin); // set the window for the interactor
 }
-
-
+/*
 int main(int argc, char *argv[], char *envp[])
 {
   int nxpts, nypts;
@@ -315,7 +334,7 @@ int main(int argc, char *argv[], char *envp[])
       std::cout << "argv[" << i << "]: " << argv[i] << std::endl;
     }
 
-  /* Interactor to interact with the render window */
+  // Interactor to interact with the render window
   VTK_SP(vtkRenderWindowInteractor, iren);
   //std::vector<double> surfData = loadData(filename, nxpts, nypts);
   plotSurface(iren, filename, nxpts, nypts);
@@ -324,4 +343,46 @@ int main(int argc, char *argv[], char *envp[])
   iren->Render();
   iren->Start();
   return EXIT_SUCCESS;
+}
+*/
+int functn(float *a, int val)
+{
+  //std::cout << &a << std::endl;
+  for (int i = 0; i < 5; i++)
+    {
+      //std::cout << a[i] << std::endl;
+      a[i] = val++;
+    }
+}
+
+int functn(std::vector<double> *a, double val)
+{
+  std::cout << &a << std::endl;
+  for (int i = 0; i < 5; i++)
+    {
+      a->push_back(val);
+      val += 1;
+    }
+  return val;
+}
+
+int main(int argc, char *argv[], char *envp[])
+{
+  double val = 0;
+  std::vector<double> *X = new std::vector<double>();
+  std::vector<double> *Y = new std::vector<double>();
+  std::cout << &x << std::endl;
+  val = functn(X, val);
+  std::cout << &y << std::endl;
+  val = functn(Y, val);
+  for (std::vector<double>::iterator i = X->begin(); i != X->end(); i++)
+    {
+      std::cout << *i << ", ";
+    }
+  std::cout << "" << std::endl;
+  for (std::vector<double>::iterator i = Y->begin(); i != Y->end(); i++)
+    {
+      std::cout << *i << ", ";
+    }
+  std::cout << "" << std::endl;
 }
