@@ -2,7 +2,7 @@
 #include <vtkSmartPointer.h>
 #include <vtkPoints.h>
 #include <vtkCellArray.h>
-#include <vtkFloatArray.h>
+#include <vtkDoubleArray.h>
 #include <vtkPointData.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
@@ -111,7 +111,7 @@ void calcZBounds(std::vector<double> *arr, std::vector<double> *zBounds)
 
 void createTopology(vtkSmartPointer<vtkPoints> points,
                     vtkSmartPointer<vtkCellArray> vertices,
-                    vtkSmartPointer<vtkFloatArray> colormap,
+                    vtkSmartPointer<vtkDoubleArray> colormap,
                     std::vector<double> *x,
                     std::vector<double> *y,
                     std::vector<double> *z,
@@ -134,16 +134,16 @@ void createTopology(vtkSmartPointer<vtkPoints> points,
   float p[4][3];
   */
   vtkIdType* pid = new vtkIdType[4];
-  float** p = new float*[4];
+  double** p = new double*[4];
   for (int i = 0; i < xSize-1; ++i)
     {
       for (int j = 0; j < ySize-1; ++j)
 	{
 	  // The coordinates of the points in the cell
-	  p[0] = new float[3] {x->at(j*xSize+i), y->at(j*xSize+i), z->at(j*xSize+i)};
-	  p[1] = new float[3] {x->at(j*xSize+i+1), y->at(j*xSize+i+1), z->at(j*xSize+i+1)};
-	  p[2] = new float[3] {x->at((j+1)*xSize+i), y->at((j+1)*xSize+i), z->at((j+1)*xSize+i)};
-	  p[3] = new float[3] {x->at((j+1)*xSize+i+1), y->at((j+1)*xSize+i+1), z->at((j+1)*xSize+i+1)};
+	  p[0] = new double[3] {x->at(j*xSize+i), y->at(j*xSize+i), z->at(j*xSize+i)};
+	  p[1] = new double[3] {x->at(j*xSize+i+1), y->at(j*xSize+i+1), z->at(j*xSize+i+1)};
+	  p[2] = new double[3] {x->at((j+1)*xSize+i), y->at((j+1)*xSize+i), z->at((j+1)*xSize+i)};
+	  p[3] = new double[3] {x->at((j+1)*xSize+i+1), y->at((j+1)*xSize+i+1), z->at((j+1)*xSize+i+1)};
 	  // Insert the points
 	  pid[0] = points->InsertNextPoint(p[0]);
 	  pid[1] = points->InsertNextPoint(p[1]);
@@ -182,7 +182,7 @@ void plotSurface(vtkRenderWindowInteractor *iren,
   /* Create the topology of the point (a vertex) */
   VTK_SP(vtkCellArray, vertices);
   /* Create the color of the point based on topology */
-  VTK_SP(vtkFloatArray, colormap);
+  VTK_SP(vtkDoubleArray, colormap);
   
   /*
     ----------------------------------------------------------------------------
