@@ -1,3 +1,7 @@
+/*
+  This code is optimized for 80 columns
+|------------------------------------------------------------------------------|
+ */
 #include <vtkVersion.h>
 #include <vtkSmartPointer.h>
 #include <vtkPoints.h>
@@ -26,70 +30,87 @@
 
 #define PI 3.141592653589793238463;
 
-void loadData(std::string filename,
-              std::vector<double> *arr)
+static void BytesToDouble(std::vector<char> *src, std::vector<double> *dst,
+                          bool littleEndian)
 {
-  for (std::vector<double>::iterator i = arr->begin(); i != arr->end(); i++)
+  /*
+    ----------------------------------------------------------------------------
+    This function loads an array of bytes and assembles it into an array of
+    doubles.
+    ----------------------------------------------------------------------------
+   */
+  int idx = 0;
+  int const doubleSize = sizeof(double);
+  int srcSize = src->size();
+  double val;
+  union{
+    double myDouble;
+    char myChars[doubleSize];
+  } uni;
+  if (littleEndian)
     {
-      std::cout << *i << std::endl;
-    }
-  std::string line;
-  std::ifstream streamin(filename);
-  if (streamin.is_open())
-    {
-      while(std::getline(streamin, line))
+      while(idx < srcSize)
         {
-          std::istringstream ss(line);
-          std::istream_iterator<std::string> begin(ss), end;
-          std::vector<std::string> arrayTokens(begin, end);
-          for (int i = 0; i < arrayTokens.size(); i++)
-            {
-              arr->push_back(std::stod(arrayTokens[i]));
-            }
+          for(int k = 0; k < doubleSize; k++)
+            uni.myChars[k] = src->at(idx+k);
+          dst->push_back(uni.myDouble);
+          idx += doubleSize;
         }
-      streamin.close();
     }
   else
     {
-      std::cout << "unable to fine file: " << filename << std::endl;
+      while(idx < srcSize)
+        {
+          for(int k = 0; k < doubleSize; k++)
+            uni.myChars[k] = src->at(idx + doubleSize-1 - k);
+          dst->push_back(uni.myDouble);
+          idx += doubleSize;
+        }
+    }
+}
+
+static void ReadAllBytes(char const* filename, std::vector<char>  *result)
+{
+  /*
+    ----------------------------------------------------------------------------
+    This function reads bytes from a file and stores the data in the
+    supplied byte array.
+    ----------------------------------------------------------------------------
+   */
+  std::ifstream ifs(filename, std::ifstream::binary|std::ifstream::ate);
+  if (ifs.is_open())
+    {
+      std::ifstream::pos_type pos = ifs.tellg();
+
+      result->resize(pos);
+
+      ifs.seekg(0, std::ios::beg);
+      ifs.read(&(*result)[0], pos);
+      ifs.close();
+    }
+  else
+    {
+      std::cout << "unable to find file: " << filename << std::endl;
     }
   return;
 }
 
-void createSurfaceArrayFromFile(std::vector<double> *x,
-                                std::vector<double> *y,
-                                std::vector<double> *z,
-                                int xSize, int ySize,
-                                float xMin, float xMax,
-                                float yMin, float yMax,
-                                std::string filename)
-{
-  loadData("/home/marcus/git/vtkPlot/Point/X.txt", x);
-  loadData("/home/marcus/git/vtkPlot/Point/Y.txt", y);
-  loadData("/home/marcus/git/vtkPlot/Point/Z.txt", z);
-}
-
-void createSurfaceArray(float* x, float* y, float* z,
-			int xSize, int ySize,
-			float xMin, float xMax,
-			float yMin, float yMax)
+void loadData(std::string filename,
+                 std::vector<double> *arr)
 {
   /*
     ----------------------------------------------------------------------------
-    Create a surface of sin(x)*cos(y) using evenly spaced values of x and y.
+    This function reads bytes from a file and assembles it into an array
+    of doubles.
     ----------------------------------------------------------------------------
    */
-  float xIncrement = (xMax-xMin)/(xSize-1);
-  float yIncrement = (yMax-yMin)/(ySize-1);
-  for (int i = 0; i < xSize; ++i)
-    {
-      for (int j = 0; j < ySize; ++j)
-	{
-	  x[i] = xMin + i*xIncrement;
-	  y[j] = yMin + j*yIncrement;
-	  z[j*xSize +i] = sin(x[i])*cos(y[j]);
-	}
-    }
+  std::vector<char> *b = new std::vector<char>();
+  ReadAllBytes(filename.c_str(), b);
+  BytesToDouble(b, arr, true);
+  b->clear();
+  b->shrink_to_fit();
+  delete b;
+  b = NULL;
 }
 
 void calcZBounds(std::vector<double> *arr, std::vector<double> *zBounds)
@@ -99,7 +120,6 @@ void calcZBounds(std::vector<double> *arr, std::vector<double> *zBounds)
     Find then maximum and minimum values of a given array to calibrate colormap.
     ----------------------------------------------------------------------------
    */
-
   for (std::vector<double>::iterator i = arr->begin(); i != arr->end(); i++)
     {
       if (*i > zBounds->at(1))
@@ -129,61 +149,49 @@ void createTopology(vtkSmartPointer<vtkPoints> points,
     ----------------------------------------------------------------------------
    */
   // 4 points per cell
-  /*
-  vtkIdType pid[4];
-  float p[4][3];
-  */
-  vtkIdType* pid = new vtkIdType[4];
-  double** p = new double*[4];
+  vtkIdType *pid = new vtkIdType[4];
   for (int i = 0; i < xSize-1; ++i)
     {
       for (int j = 0; j < ySize-1; ++j)
-	{
-	  // The coordinates of the points in the cell
-	  p[0] = new double[3] {x->at(j*xSize+i), y->at(j*xSize+i), z->at(j*xSize+i)};
-	  p[1] = new double[3] {x->at(j*xSize+i+1), y->at(j*xSize+i+1), z->at(j*xSize+i+1)};
-	  p[2] = new double[3] {x->at((j+1)*xSize+i), y->at((j+1)*xSize+i), z->at((j+1)*xSize+i)};
-	  p[3] = new double[3] {x->at((j+1)*xSize+i+1), y->at((j+1)*xSize+i+1), z->at((j+1)*xSize+i+1)};
-	  // Insert the points
-	  pid[0] = points->InsertNextPoint(p[0]);
-	  pid[1] = points->InsertNextPoint(p[1]);
-	  pid[2] = points->InsertNextPoint(p[2]);
-	  pid[3] = points->InsertNextPoint(p[3]);
-	  // Insert the next cell
-	  vertices->InsertNextCell(4, pid);
-	  // Insert height to colormap
-	  colormap->InsertNextValue(z->at(j*xSize +i));
-	  colormap->InsertNextValue(z->at(j*xSize +i+1));
-	  colormap->InsertNextValue(z->at((j+1)*xSize +i));
-	  colormap->InsertNextValue(z->at((j+1)*xSize +i+1));
-	  delete[] p[0];
-	  p[0] = NULL;
-	  delete[] p[1];
-	  p[1] = NULL;
-	  delete[] p[2];
-	  p[2] = NULL;
-	  delete[] p[3];
-	  p[3] = NULL;
-	}
+        {
+          // The coordinates of the points in the cell
+          // Insert the points
+          pid[0] = points->InsertNextPoint(x->at(j*xSize+i),
+                                           y->at(j*xSize+i),
+                                           z->at(j*xSize+i));
+          pid[1] = points->InsertNextPoint(x->at(j*xSize+i+1),
+                                           y->at(j*xSize+i+1),
+                                           z->at(j*xSize+i+1));
+          pid[2] = points->InsertNextPoint(x->at((j+1)*xSize+i),
+                                           y->at((j+1)*xSize+i),
+                                           z->at((j+1)*xSize+i));
+          pid[3] = points->InsertNextPoint(x->at((j+1)*xSize+i+1),
+                                           y->at((j+1)*xSize+i+1),
+                                           z->at((j+1)*xSize+i+1));
+          // Insert the next cell
+          vertices->InsertNextCell(4, pid);
+          // Insert height to colormap
+          colormap->InsertNextValue(z->at(j*xSize +i));
+          colormap->InsertNextValue(z->at(j*xSize +i+1));
+          colormap->InsertNextValue(z->at((j+1)*xSize +i));
+          colormap->InsertNextValue(z->at((j+1)*xSize +i+1));
+        }
     }
+  delete[] pid;
+  pid = NULL;
 }
 
 void plotSurface(vtkRenderWindowInteractor *iren,
-                 std::string filename, int xSize, int ySize)
+                 std::string fileX, std::string fileY,
+                 std::string fileZ, int xSize, int ySize)
 {
-  //int xSize = 0x400;
-  //int ySize = 0x400;
-  float xMin = -PI;
-  float xMax = PI;
-  float yMin = -PI;
-  float yMax = PI;
   /* Create the geometry of a point (the coordinate) */
   VTK_SP(vtkPoints, points);
   /* Create the topology of the point (a vertex) */
   VTK_SP(vtkCellArray, vertices);
   /* Create the color of the point based on topology */
   VTK_SP(vtkDoubleArray, colormap);
-  
+
   /*
     ----------------------------------------------------------------------------
     z-coords need unique values for every set of x and y. x and y are constant
@@ -192,21 +200,12 @@ void plotSurface(vtkRenderWindowInteractor *iren,
     ----------------------------------------------------------------------------
   */
   /* Create the surface */
-  /*
-  float *x = new float[xSize];
-  float *y = new float[ySize];
-  float *z = new float[ySize*xSize];
-  */
   std::vector<double> *x = new std::vector<double>();
   std::vector<double> *y = new std::vector<double>();
   std::vector<double> *z = new std::vector<double>();
-  /*
-  createSurfaceArray(x, y, z, xSize, ySize,
-                     xMin, xMax, yMin, yMax);
-  */
-  createSurfaceArrayFromFile(x, y, z, xSize, ySize,
-                             xMin, xMax, yMin, yMax,
-                             filename);
+  loadData(fileX, x);
+  loadData(fileY, y);
+  loadData(fileZ, z);
   /* Find max and min for the colormap */
   std::vector<double> *zBounds = new std::vector<double>();
   zBounds->push_back(z->at(0));
@@ -217,14 +216,18 @@ void plotSurface(vtkRenderWindowInteractor *iren,
   createTopology(points, vertices, colormap,
                 x, y, z, xSize, ySize);
   /* Clean up unused variables */
-  /*
-  delete[] x;
+  x->clear();
+  x->shrink_to_fit();
+  delete x;
   x = NULL;
-  delete[] y;
+  y->clear();
+  y->shrink_to_fit();
+  delete y;
   y = NULL;
-  delete[] z;
+  z->clear();
+  z->shrink_to_fit();
+  delete z;
   z = NULL;
-  */
   /*
     ----------------------------------------------------------------------------
     Set the points and vertices created as the geometry and topology of the
@@ -238,13 +241,13 @@ void plotSurface(vtkRenderWindowInteractor *iren,
   VTK_SP(vtkPolyDataMapper, mapper);
   /* Represent graphics in a rendering scene */
   VTK_SP(vtkActor, actor);
-  
+
   /* create polygons data from then points */
   point->SetPoints(points);
   //point->SetVerts(vertices); // points, slower than surface
   point->SetStrips(vertices); // surface, faster than points
   point->GetPointData()->SetScalars(colormap);
-  
+
   /* Visualize polygons as primitive grapnics */
   mapper->SetInputData(point);
   mapper->SetScalarRange(zBounds->at(0), zBounds->at(1)); // colormap boundaries
@@ -252,7 +255,7 @@ void plotSurface(vtkRenderWindowInteractor *iren,
   //zBounds = NULL;
   /* set the rendering scene */
   actor->SetMapper(mapper);
-  actor->GetProperty()->SetOpacity(0.7);
+  actor->GetProperty()->SetOpacity(1.0);
   actor->RotateX(-45);
   actor->RotateY(45);
 
@@ -266,7 +269,7 @@ void plotSurface(vtkRenderWindowInteractor *iren,
   VTK_SP(vtkRenderer, ren);
   /* Window to place the renderer in */
   VTK_SP(vtkRenderWindow, renWin);
-  
+
   ren->AddActor(actor); // add the rendering scene
   ren->SetBackground(0.7, 0.8, 1.0);
   renWin->SetSize(800, 800);
@@ -277,24 +280,21 @@ void plotSurface(vtkRenderWindowInteractor *iren,
 int main(int argc, char *argv[], char *envp[])
 {
   int nxpts, nypts;
-  std::string filename;
-  if (argc > 3)
+  std::string fileX, fileY, fileZ;
+  if (argc > 5)
     {
-      filename = argv[1];
-      nxpts = std::stoi(argv[2]);
-      nypts = std::stoi(argv[3]);
+      fileX = argv[1];
+      fileY = argv[2];
+      fileZ = argv[3];
+      nxpts = std::stoi(argv[4]);
+      nypts = std::stoi(argv[5]);
     }
-  std::cout << filename << ", " << nxpts << ", " << nypts << ", " << std::endl;
-
-  for (int i = 0; i < argc; i++)
-    {
-      std::cout << "argv[" << i << "]: " << argv[i] << std::endl;
-    }
-
+  std::cout << "Reading from file: \n\t" << fileX << "\n\t" << fileY << "\n\t" << fileZ << std::endl;
+  std::cout << "Grid size: " << nxpts << " x " << nypts << std::endl;
   // Interactor to interact with the render window
   VTK_SP(vtkRenderWindowInteractor, iren);
   //std::vector<double> surfData = loadData(filename, nxpts, nypts);
-  plotSurface(iren, filename, nxpts, nypts);
+  plotSurface(iren, fileX, fileY, fileZ, nxpts, nypts);
   //renWin->Render();
   //ren->GetActiveCamera()->Zoom(1.5);
   iren->Render();
