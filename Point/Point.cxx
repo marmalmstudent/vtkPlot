@@ -43,30 +43,26 @@ static void BytesToDouble(std::vector<char> *src, std::vector<double> *dst,
   int const doubleSize = sizeof(double);
   int srcSize = src->size();
   double val;
-  union{
+  union {
     double myDouble;
     char myChars[doubleSize];
   } uni;
-  if (littleEndian)
-    {
-      while(idx < srcSize)
-        {
-          for(int k = 0; k < doubleSize; k++)
-            uni.myChars[k] = src->at(idx+k);
-          dst->push_back(uni.myDouble);
-          idx += doubleSize;
-        }
+  if (littleEndian) {
+    while(idx < srcSize) {
+      for(int k = 0; k < doubleSize; k++)
+	uni.myChars[k] = src->at(idx+k);
+      dst->push_back(uni.myDouble);
+      idx += doubleSize;
     }
-  else
-    {
-      while(idx < srcSize)
-        {
-          for(int k = 0; k < doubleSize; k++)
-            uni.myChars[k] = src->at(idx + doubleSize-1 - k);
-          dst->push_back(uni.myDouble);
-          idx += doubleSize;
-        }
+  }
+  else {
+    while(idx < srcSize) {
+      for(int k = 0; k < doubleSize; k++)
+	uni.myChars[k] = src->at(idx + doubleSize-1 - k);
+      dst->push_back(uni.myDouble);
+      idx += doubleSize;
     }
+  }
 }
 
 static void ReadAllBytes(char const* filename, std::vector<char>  *result)
@@ -78,25 +74,22 @@ static void ReadAllBytes(char const* filename, std::vector<char>  *result)
     ----------------------------------------------------------------------------
    */
   std::ifstream ifs(filename, std::ifstream::binary|std::ifstream::ate);
-  if (ifs.is_open())
-    {
-      std::ifstream::pos_type pos = ifs.tellg();
-
-      result->resize(pos);
-
-      ifs.seekg(0, std::ios::beg);
-      ifs.read(&(*result)[0], pos);
-      ifs.close();
-    }
-  else
-    {
-      std::cout << "unable to find file: " << filename << std::endl;
-    }
+  if (ifs.is_open()) {
+    std::ifstream::pos_type pos = ifs.tellg();
+    
+    result->resize(pos);
+    
+    ifs.seekg(0, std::ios::beg);
+    ifs.read(&(*result)[0], pos);  // the adress of result[0]
+    ifs.close();
+  }
+  else {
+    std::cout << "unable to find file: " << filename << std::endl;
+  }
   return;
 }
 
-void loadData(std::string filename,
-                 std::vector<double> *arr)
+void loadData(std::string filename, std::vector<double> *arr)
 {
   /*
     ----------------------------------------------------------------------------
@@ -104,13 +97,9 @@ void loadData(std::string filename,
     of doubles.
     ----------------------------------------------------------------------------
    */
-  std::vector<char> *b = new std::vector<char>();
-  ReadAllBytes(filename.c_str(), b);
-  BytesToDouble(b, arr, true);
-  b->clear();
-  b->shrink_to_fit();
-  delete b;
-  b = NULL;
+  std::vector<char> b;
+  ReadAllBytes(filename.c_str(), &b);
+  BytesToDouble(&b, arr, true);
 }
 
 void calcZBounds(std::vector<double> *arr, std::vector<double> *zBounds)
@@ -120,13 +109,12 @@ void calcZBounds(std::vector<double> *arr, std::vector<double> *zBounds)
     Find then maximum and minimum values of a given array to calibrate colormap.
     ----------------------------------------------------------------------------
    */
-  for (std::vector<double>::iterator i = arr->begin(); i != arr->end(); i++)
-    {
-      if (*i > zBounds->at(1))
-        zBounds->at(1) = *i;
-      if (*i < zBounds->at(0))
-        zBounds->at(0) = *i;
-    }
+  for (std::vector<double>::iterator i = arr->begin(); i != arr->end(); i++) {
+    if (*i > zBounds->at(1))
+      zBounds->at(1) = *i;
+    if (*i < zBounds->at(0))
+      zBounds->at(0) = *i;
+  }
 }
 
 void createTopology(vtkSmartPointer<vtkPoints> points,
@@ -150,33 +138,31 @@ void createTopology(vtkSmartPointer<vtkPoints> points,
    */
   // 4 points per cell
   vtkIdType *pid = new vtkIdType[4];
-  for (int i = 0; i < xSize-1; ++i)
-    {
-      for (int j = 0; j < ySize-1; ++j)
-        {
-          // The coordinates of the points in the cell
-          // Insert the points
-          pid[0] = points->InsertNextPoint(x->at(j*xSize+i),
-                                           y->at(j*xSize+i),
-                                           z->at(j*xSize+i));
-          pid[1] = points->InsertNextPoint(x->at(j*xSize+i+1),
-                                           y->at(j*xSize+i+1),
-                                           z->at(j*xSize+i+1));
-          pid[2] = points->InsertNextPoint(x->at((j+1)*xSize+i),
-                                           y->at((j+1)*xSize+i),
-                                           z->at((j+1)*xSize+i));
-          pid[3] = points->InsertNextPoint(x->at((j+1)*xSize+i+1),
-                                           y->at((j+1)*xSize+i+1),
-                                           z->at((j+1)*xSize+i+1));
-          // Insert the next cell
-          vertices->InsertNextCell(4, pid);
-          // Insert height to colormap
-          colormap->InsertNextValue(z->at(j*xSize +i));
-          colormap->InsertNextValue(z->at(j*xSize +i+1));
-          colormap->InsertNextValue(z->at((j+1)*xSize +i));
-          colormap->InsertNextValue(z->at((j+1)*xSize +i+1));
-        }
-    }
+  for (int i = 0; i < xSize-1; ++i) {
+      for (int j = 0; j < ySize-1; ++j) {
+	// The coordinates of the points in the cell
+	// Insert the points
+	pid[0] = points->InsertNextPoint(x->at(j*xSize+i),
+					 y->at(j*xSize+i),
+					 z->at(j*xSize+i));
+	pid[1] = points->InsertNextPoint(x->at(j*xSize+i+1),
+					 y->at(j*xSize+i+1),
+					 z->at(j*xSize+i+1));
+	pid[2] = points->InsertNextPoint(x->at((j+1)*xSize+i),
+					 y->at((j+1)*xSize+i),
+					 z->at((j+1)*xSize+i));
+	pid[3] = points->InsertNextPoint(x->at((j+1)*xSize+i+1),
+					 y->at((j+1)*xSize+i+1),
+					 z->at((j+1)*xSize+i+1));
+	// Insert the next cell
+	vertices->InsertNextCell(4, pid);
+	// Insert height to colormap
+	colormap->InsertNextValue(z->at(j*xSize +i));
+	colormap->InsertNextValue(z->at(j*xSize +i+1));
+	colormap->InsertNextValue(z->at((j+1)*xSize +i));
+	colormap->InsertNextValue(z->at((j+1)*xSize +i+1));
+      }
+  }
   delete[] pid;
   pid = NULL;
 }
@@ -200,34 +186,21 @@ void plotSurface(vtkRenderWindowInteractor *iren,
     ----------------------------------------------------------------------------
   */
   /* Create the surface */
-  std::vector<double> *x = new std::vector<double>();
-  std::vector<double> *y = new std::vector<double>();
-  std::vector<double> *z = new std::vector<double>();
-  loadData(fileX, x);
-  loadData(fileY, y);
-  loadData(fileZ, z);
+  std::vector<double> x;
+  std::vector<double> y;
+  std::vector<double> z;
+  loadData(fileX, &x);
+  loadData(fileY, &y);
+  loadData(fileZ, &z);
   /* Find max and min for the colormap */
-  std::vector<double> *zBounds = new std::vector<double>();
-  zBounds->push_back(z->at(0));
-  zBounds->push_back(z->at(0));
-  calcZBounds(z, zBounds);
+  std::vector<double> zBounds;
+  zBounds.push_back(z.at(0));
+  zBounds.push_back(z.at(0));
+  calcZBounds(&z, &zBounds);
 
   /* Create the topology of the point (a vertex) */
   createTopology(points, vertices, colormap,
-                x, y, z, xSize, ySize);
-  /* Clean up unused variables */
-  x->clear();
-  x->shrink_to_fit();
-  delete x;
-  x = NULL;
-  y->clear();
-  y->shrink_to_fit();
-  delete y;
-  y = NULL;
-  z->clear();
-  z->shrink_to_fit();
-  delete z;
-  z = NULL;
+                &x, &y, &z, xSize, ySize);
   /*
     ----------------------------------------------------------------------------
     Set the points and vertices created as the geometry and topology of the
@@ -250,12 +223,12 @@ void plotSurface(vtkRenderWindowInteractor *iren,
 
   /* Visualize polygons as primitive grapnics */
   mapper->SetInputData(point);
-  mapper->SetScalarRange(zBounds->at(0), zBounds->at(1)); // colormap boundaries
+  mapper->SetScalarRange(zBounds.at(0), zBounds.at(1)); // colormap boundaries
   //delete[] zBounds;
   //zBounds = NULL;
   /* set the rendering scene */
   actor->SetMapper(mapper);
-  actor->GetProperty()->SetOpacity(1.0);
+  actor->GetProperty()->SetOpacity(0.3);
   actor->RotateX(-45);
   actor->RotateY(45);
 
