@@ -2,11 +2,10 @@ from numpy import pi, sin, cos, array, linspace, meshgrid, reshape, size, float3
 from os import system
 
 
-xSize = 3001
-ySize = 3001
+xSize = 1001
+ySize = 1001
 A, B = meshgrid(linspace(-2*pi, 2*pi, xSize), linspace(-2*pi, 2*pi, ySize))
-R = sin(A)*cos(B)
-C = 5*sin(R)**2
+C = sin(A)*cos(B)
 X = array(reshape(A, (-1, size(A))), dtype=float32)
 Y = array(reshape(B, (-1, size(B))), dtype=float32)
 Z = array(reshape(C, (-1, size(C))), dtype=float32)
