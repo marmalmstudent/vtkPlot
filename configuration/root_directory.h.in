@@ -1,0 +1,24 @@
+#ifndef ROOT_DIRECTORY_H
+#define ROOT_DIRECTORY_H
+
+#include <string>
+#include <sstream>
+
+#define SYS_PATH "${CMAKE_SOURCE_DIR}"
+
+static inline std::string
+sys_path(char const *rel_path)
+{
+  std::ostringstream os;
+  os << SYS_PATH;
+  os << rel_path;
+  return os.str();
+}
+
+static inline std::string
+sys_path(std::string const &rel_path)
+{
+  return std::string(SYS_PATH + rel_path);
+}
+
+#endif //ROOT_DIRECTORY_H
